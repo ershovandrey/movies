@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Http\Resources\MovieResource;
 use App\Movie;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Validator;
+use Tmdb\Laravel\Facades\Tmdb;
 
 class FavoritesController extends Controller
 {
@@ -28,43 +30,51 @@ class FavoritesController extends Controller
      */
     public function store(Request $request)
     {
-        $id = $request->get('id');
-        try {
-            $data = Tmdb::getMoviesApi()->getMovie($id);
-            $attributes = [
-                'movie_id' => $data['id'],
-                'title' => $data['title'],
-                'overview' => $data['overview'],
-                'vote_average' => $data['vote_average'],
-                'user_id' => auth()->id(),
-            ];
-            $movie = Movie::create($attributes);
-            return new MovieResource($movie);
+        $validator = Validator::make($request->all(), [
+            'id' => 'required|integer',
+        ]);
+        if (!$validator->fails()) {
+            $vals = $validator->getData();
+            try {
+                $data = Tmdb::getMoviesApi()->getMovie($vals['id']);
+                $attributes = [
+                    'movie_id' => $data['id'],
+                    'title' => $data['title'],
+                    'overview' => $data['overview'],
+                    'vote_average' => $data['vote_average'],
+                    'user_id' => auth()->id(),
+                ];
+                $movie = Movie::create($attributes);
+                return new MovieResource($movie);
+            }
+            catch (\Exception $ex) {
+                return response()->json(['error' => $ex->getMessage()], 406);
+            }
         }
-        catch (\Exception $ex) {
-            return response()->json(['error' => $ex->getMessage()], 406);
-        }
+        return response()->json(['error' => 'Wrong params passed'], 406);
     }
 
     /**
      * Display the specified resource.
      *
-     * @param  \App\Movie  $movie
+     * @param int $id
      * @return \Illuminate\Http\Response
      */
-    public function show(Movie $movie)
+    public function show($id)
     {
+        $movie = Movie::findOrFail($id);
         return new MovieResource($movie);
     }
 
     /**
      * Remove the specified resource from storage.
      *
-     * @param  \App\Movie  $movie
+     * @param  int  $id
      * @return \Illuminate\Http\Response
      */
-    public function destroy(Movie $movie)
+    public function destroy($id)
     {
+        $movie = Movie::findOrFail($id);
         $movie->delete();
         return new MovieResource($movie);
     }

@@ -19,3 +19,4 @@ Route::middleware('auth:api')->get('/user', function (Request $request) {
 
 Route::middleware('auth:api')->get('/movies', 'API\MoviesController@index');
 Route::middleware('auth:api')->get('/movies/{id}', 'API\MoviesController@show');
+Route::apiResource('/favorites', 'API\FavoritesController')->except(['update'])->middleware('auth:api');
